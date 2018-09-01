@@ -1,52 +1,68 @@
 package br.com.lucasnp.helpdesk.api.controller;
 
-import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mongodb.DuplicateKeyException;
+
 import br.com.lucasnp.helpdesk.api.entity.User;
-import br.com.lucasnp.helpdesk.api.repository.UserRepository;
+import br.com.lucasnp.helpdesk.api.response.Response;
+import br.com.lucasnp.helpdesk.api.service.UserService;
 
 @RestController
 @RequestMapping("/api/user")
+@CrossOrigin(origins = "*")
 public class UserController {
 
 	@Autowired
-	UserRepository userRepository;
+	private UserService userService;
 
-	@RequestMapping(method = RequestMethod.GET)
-	public List<User> findAll() {
-		return userRepository.findAll();
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
+	@PostMapping
+	@PreAuthorize("hasAnyRole('ADMIN')")
+	public ResponseEntity<Response<User>> create(HttpServletRequest request, @RequestBody User user,
+			BindingResult result) {
+		Response<User> response = new Response<User>();
+		try {
+			validateCreateUser(user, result);
+			if (result.hasErrors()) {
+				result.getAllErrors().forEach(error -> response.getErrors().add(error.getDefaultMessage()));
+				return ResponseEntity.badRequest().body(response);
+			}
+			
+			//criptografar a senha do usuário
+			user.setPassword(passwordEncoder.encode(user.getPassword()));
+			
+			User userPersisted = (User) userService.createOrUpdate(user);
+			response.setData(userPersisted);
+			
+		} catch (DuplicateKeyException dpKException) {
+			response.getErrors().add("Email already registered");
+			return ResponseEntity.badRequest().body(response);
+		} catch (Exception e) {
+			response.getErrors().add(e.getMessage());
+			return ResponseEntity.badRequest().body(response);
+		}
+		return ResponseEntity.ok(response);
 	}
 
-	@RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public void create(@RequestBody User user) {
-		PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		userRepository.save(user);
-	}
-
-	@RequestMapping(value = "/{id}")
-	public User read(@PathVariable String id) {
-		return userRepository.findOne(id);
-	}
-
-	@RequestMapping(method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public void update(@RequestBody User user) {
-		userRepository.save(user);
-	}
-
-	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-	public void delete(@PathVariable String id) {
-		userRepository.delete(id);
+	private void validateCreateUser(User user, BindingResult result) {
+		if (user.getEmail() == null) {
+			result.addError(new ObjectError("User", "Email no informations"));
+		}
 	}
 
 }
