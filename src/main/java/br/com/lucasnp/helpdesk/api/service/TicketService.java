@@ -29,6 +29,8 @@ public interface TicketService {
 	
 	Page<Ticket> findByNumber(int page, int count, Integer number);
 	
+	Page<Ticket> findAll(int page, int count);
+	
 	Iterable<Ticket> findAll();
 	
 	Page<Ticket> findByParameterAndUserAttributed(int page, int count, String title, String status, String priority, String userAttributed);

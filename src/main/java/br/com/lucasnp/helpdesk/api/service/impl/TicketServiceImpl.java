@@ -80,8 +80,9 @@ public class TicketServiceImpl implements TicketService {
 	}
 
 	@Override
-	public Iterable<Ticket> findAll() {
-		return this.ticketRepository.findAll();
+	public Page<Ticket> findAll(int page, int count) {
+		Pageable pages = new PageRequest(page, count);
+		return this.ticketRepository.findAll(pages);
 	}
 
 	@Override
@@ -93,4 +94,8 @@ public class TicketServiceImpl implements TicketService {
 						status, priority, pages);
 	}
 
+	@Override
+	public Iterable<Ticket> findAll() {
+		return ticketRepository.findAll();
+	}
 }
