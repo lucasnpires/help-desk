@@ -182,14 +182,15 @@ public class TicketController {
 	public ResponseEntity<Response<Page<Ticket>>> findByParams(HttpServletRequest request,
 			@PathVariable("page") int page, @PathVariable("count") int count, @PathVariable("number") Integer number,
 			@PathVariable("title") String title, @PathVariable("status") String status,
-			@PathVariable("priority") String priority, @PathVariable("userAttributed") boolean userAttributed) {
+			@PathVariable("priority") String priority, 
+			@PathVariable("userAttributed") boolean userAttributed) {
 
 		title = title.equals("uninformed") ? "" : title;
 		status = status.equals("uninformed") ? "" : status;
 		priority = priority.equals("uninformed") ? "" : priority;
 
 		Response<Page<Ticket>> response = new Response<Page<Ticket>>();
-
+		
 		Page<Ticket> tickets = null;
 		if (number > 0) {
 			tickets = ticketService.findByNumber(page, count, number);
@@ -216,8 +217,12 @@ public class TicketController {
 
 	@PutMapping(value = "{id}/{status}")
 	@PreAuthorize("hasAnyRole('CUSTOMER', 'TECHNICIAN')")
-	public ResponseEntity<Response<Ticket>> changeStatus(HttpServletRequest request, @PathVariable("id") String id,
-			@PathVariable("status") String status, @RequestBody Ticket ticket, BindingResult result) {
+	public ResponseEntity<Response<Ticket>> changeStatus(
+			@PathVariable("id") String id,
+			@PathVariable("status") String status, 
+			HttpServletRequest request, 
+			@RequestBody Ticket ticket, 
+			BindingResult result) {
 
 		Response<Ticket> response = new Response<Ticket>();
 		try {
